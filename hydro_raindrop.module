@@ -1,0 +1,35 @@
+<?php
+
+/**
+ * @file
+ * Contains hydro_raindrop.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function hydro_raindrop_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the hydro_raindrop module.
+    case 'help.page.hydro_raindrop':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Provides users the ability to utilize Hydro Raindrop Multi Factor Authentication.') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function hydro_raindrop_theme() {
+  return [
+    'hydro_raindrop' => [
+      'render element' => 'children',
+    ],
+  ];
+}

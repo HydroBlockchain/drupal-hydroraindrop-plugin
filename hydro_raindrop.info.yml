@@ -1,0 +1,5 @@
+name: 'Hydro Raindrop'
+type: module
+description: 'Provides users the ability to utilize Hydro Raindrop Multi Factor Authentication.'
+core: 8.x
+package: 'Hydro'
