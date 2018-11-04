@@ -5,7 +5,11 @@
  * Contains hydro_raindrop.module.
  */
 
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
 
 /**
  * Implements hook_help().
@@ -16,7 +20,7 @@ function hydro_raindrop_help($route_name, RouteMatchInterface $route_match) {
     case 'help.page.hydro_raindrop':
       $output = '';
       $output .= '<h3>' . t('About') . '</h3>';
-      $output .= '<p>' . t('Provides users the ability to utilize Hydro Raindrop Multi Factor Authentication.') . '</p>';
+      $output .= '<p>' . t('Provides Hydro Raindrop Multi Factor Authentication integration.') . '</p>';
       return $output;
 
     default:
@@ -26,10 +30,21 @@ function hydro_raindrop_help($route_name, RouteMatchInterface $route_match) {
 /**
  * Implements hook_theme().
  */
-function hydro_raindrop_theme() {
+function hydro_raindrop_theme($existing, $type, $theme, $path) {
   return [
-    'hydro_raindrop' => [
-      'render element' => 'children',
+    'activate_raindrop' => [
+      'variables' => ['raindrop_activated' => 'Deactivated']
     ],
   ];
+}
+
+/**
+ * Implements hook_user_login().
+ */
+function hydro_raindrop_user_login(AccountInterface $account) {
+  $route_name = \Drupal::routeMatch()->getRouteName();
+  if ($route_name != 'user.reset.login') {
+    $destination = Url::fromRoute('hydro_raindrop.activate')->toString();
+    \Drupal::service('request_stack')->getCurrentRequest()->query->set('destination', $destination);
+  }
 }

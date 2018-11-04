@@ -7,3 +7,11 @@ hydro_raindrop.settings_form:
     _permission: 'access administration pages'
   options:
     _admin_route: TRUE
+
+hydro_raindrop.activate:
+  path: '/activate-raindrop'
+  defaults:
+    _controller: '\Drupal\hydro_raindrop\Controller\ActivateRaindropController::content'
+    _title: 'Activate Hydro Raindrop'
+  requirements:
+    _role: 'authenticated'
