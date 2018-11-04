@@ -1,0 +1,27 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_activate_raindrop
+  module:
+    - user
+    - hydro_raindrop
+  enforced:
+    module:
+      - hydro_raindrop
+id: user.user.field_activate_raindrop
+field_name: field_activate_raindrop
+entity_type: user
+bundle: user
+label: 'Activate Raindrop'
+description: 'Add additional security to your account for logins using the blockchain based Hydro MFA app.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: Activated
+  off_label: Deactivated
+field_type: boolean

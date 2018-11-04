@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * Implements hook_install().
+ */
+function hydro_raindrop_install() {
+
+  // Set User form display defaults
+  $form_config = \Drupal::service('config.factory')->getEditable('core.entity_form_display.user.user.default');
+  $form_settings = [
+    'type' => 'boolean_checkbox',
+    'weight' => -15,
+    'region' => 'content',
+    'settings' => [
+      'display_label' => TRUE
+    ],
+    'third_party_settings' => []
+  ];
+  $form_config->set('content.field_activate_raindrop', $form_settings)->save();
+
+  // Set User profile display defaults
+  $profile_config = \Drupal::service('config.factory')->getEditable('core.entity_view_display.user.user.default');
+  $profile_settings = [
+    'type' => 'boolean',
+    'weight' => 1,
+    'region' => 'content',
+    'label' => 'above',
+    'settings' => [
+      'format' => 'default',
+      'format_custom_false' => '',
+      'format_custom_true' => '',
+    ],
+    'third_party_settings' => [],
+  ];
+  $profile_config->set('content.field_activate_raindrop', $profile_settings)->save();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function hydro_raindrop_uninstall() {
+  
+  // Delete from User form display
+  $form_config = \Drupal::service('config.factory')->getEditable('core.entity_form_display.user.user.default');
+  $form_config->clear('content.field_activate_raindrop')->save();
+
+  // Delete from User profile display
+  $profile_config = \Drupal::service('config.factory')->getEditable('core.entity_view_display.user.user.default');
+  $profile_config->clear('content.field_activate_raindrop')->save();
+}
