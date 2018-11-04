@@ -1,0 +1,9 @@
+hydro_raindrop.settings_form:
+  path: '/admin/config/hydro_raindrop/settings'
+  defaults:
+    _form: '\Drupal\hydro_raindrop\Form\SettingsForm'
+    _title: 'API Configuration Settings'
+  requirements:
+    _permission: 'access administration pages'
+  options:
+    _admin_route: TRUE

@@ -1,0 +1,6 @@
+hydro_raindrop.settings_form:
+  title: 'Hydro Raindrop API'
+  route_name: hydro_raindrop.settings_form
+  description: 'Configure the Hydro Raindrop API with your Application ID and Client ID/Secret.'
+  parent: system.admin_config_system
+  weight: 99
