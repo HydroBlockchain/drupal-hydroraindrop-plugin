@@ -33,6 +33,7 @@ function hydro_raindrop_install() {
     'third_party_settings' => [],
   ];
   $profile_config->set('content.field_activate_raindrop', $profile_settings)->save();
+
 }
 
 /**
@@ -47,4 +48,5 @@ function hydro_raindrop_uninstall() {
   // Delete from User profile display
   $profile_config = \Drupal::service('config.factory')->getEditable('core.entity_view_display.user.user.default');
   $profile_config->clear('content.field_activate_raindrop')->save();
+
 }
