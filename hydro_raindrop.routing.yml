@@ -11,7 +11,7 @@ hydro_raindrop.settings_form:
 hydro_raindrop.activate:
   path: '/activate-raindrop'
   defaults:
-    _controller: '\Drupal\hydro_raindrop\Controller\ActivateRaindropController::content'
+    _form: '\Drupal\hydro_raindrop\Form\SignupForm'
     _title: 'Activate Hydro Raindrop'
   requirements:
     _role: 'authenticated'
