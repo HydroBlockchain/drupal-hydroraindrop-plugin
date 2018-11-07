@@ -2,6 +2,9 @@
 
 namespace Drupal\hydro_raindrop\Form;
 
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\HtmlCommand;
+use Drupal\Core\Ajax\InvokeCommand;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -38,13 +41,13 @@ class SignupForm extends FormBase
       '#type' => 'button',
       '#value' => $this->t('Link'),
       '#ajax' => array(
-        'callback' => 'Drupal\hydro_raindrop\Controller\SignupController::LinkAccount',
+        'callback' => '::LinkAccount',
         'wrapper' => $this->getFormId(),
         'method' => 'replace',
         'event' => 'click',
         'progress' => [
           'type' => 'throbber',
-          'message' => $this->t('Linking HydroID...'),
+          'message' => $this->t('Linking...'),
         ],
       ),
       '#weight' => '1',
@@ -53,10 +56,12 @@ class SignupForm extends FormBase
       '#type' => 'submit',
       '#value' => $this->t('Successful link, proceed to verification'),
       '#attributes' => [
-        'disabled' => 'disabled'
+        'style' => 'display: none'
       ],
       '#weight' => '2',
     ];
+
+    $form['#attached']['library'][] = 'hydro_raindrop/link-account';
 
     return $form;
   }
@@ -79,6 +84,45 @@ class SignupForm extends FormBase
       drupal_set_message($key . ': ' . $value);
     }
 
+  }
+
+  public static function LinkAccount(array &$form, FormStateInterface $form_state)
+  {
+    $ajax_response = new AjaxResponse();
+
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', true])
+    );
+
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-link-account', 'attr', ['disabled', 'disabled'])
+    );
+
+    sleep(1.75);
+
+    $ajax_response->addCommand(
+      new HtmlCommand(
+        '.region-highlighted',
+        '<div role="contentinfo" aria-label="Status message" class="messages messages--status">
+          <div class="messages__content container">
+          <h2 class="visually-hidden">Status message</h2>
+            <ul class="messages__list">
+              <li class="messages__item">' . t('Hydro Account <b><i>@username</i></b> has been linked.', ['@username' => $form_state->getValue('hydro_username')]) . '</li>
+            </ul>
+          </div>
+        </div>'
+      )
+    );
+
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-link-account', 'css', ['display', 'none'])
+    );
+
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-submit', 'attr', ['style', 'margin-left: 0'])
+    );
+
+    return $ajax_response;
   }
 
 }
