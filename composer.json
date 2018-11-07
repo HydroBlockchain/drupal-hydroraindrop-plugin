@@ -6,9 +6,18 @@
   "license": "GPL-2.0+",
   "homepage": "https://www.drupal.org/project/hydro_raindrop",
   "minimum-stability": "dev",
+  "authors": [
+    {
+        "name": "Tommy Cox (tommycox)",
+        "homepage": "https://www.drupal.org/u/tommycox",
+        "role": "Maintainer"
+    }
+  ],
   "support": {
     "issues": "https://www.drupal.org/project/issues/hydro_raindrop",
     "source": "http://cgit.drupalcode.org/hydro_raindrop"
   },
-  "require": { }
+  "require": {
+    "adrenth/raindrop-sdk": "dev-master"
+  }
 }
