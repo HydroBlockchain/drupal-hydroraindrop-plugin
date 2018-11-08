@@ -18,7 +18,7 @@
     "source": "http://cgit.drupalcode.org/hydro_raindrop"
   },
   "require": {
-    "php": "^7.0",
+    "php": "^7.1",
     "composer/installers": "^1.0",
     "adrenth/raindrop-sdk": "^1.2"
   }

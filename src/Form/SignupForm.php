@@ -5,7 +5,6 @@ namespace Drupal\hydro_raindrop\Form;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\InvokeCommand;
-use Drupal\Core\Ajax\PrependCommand;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\User\PrivateTempStoreFactory;
@@ -56,8 +55,8 @@ class SignupForm extends FormBase
       '#weight' => '0',
     ];
 
-    $form['hydro_raindrop_message'] = [
-      '#prefix' => '<div class="hydro-raindrop-message">',
+    $form['hydro_raindrop_code'] = [
+      '#prefix' => '<div class="hydro-raindrop-code">',
       '#suffix' => '</div>',
     ];
 
@@ -90,24 +89,8 @@ class SignupForm extends FormBase
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, FormStateInterface $form_state)
-  {
-    parent::validateForm($form, $form_state);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $this->verifySignature($form_state->getValue('hydro_username'), (int) $this->tempStore->get('hydro_raindrop_message'));
-
-    drupal_set_message(
-      t(
-        'Hydro Account <b><i>@username</i></b> has been verified.',
-        ['@username' => $form_state->getValue('hydro_username')]
-      )
-    );
-    
+    $this->verifySignature($form_state->getValue('hydro_username'), (int) $this->tempStore->get('hydro_raindrop_code'));
   }
 
   /**
@@ -141,9 +124,7 @@ class SignupForm extends FormBase
   /**
    * Todo: comment
    */
-  public function ajaxRegister(array &$form, FormStateInterface $form_state) {
-    $ajax_response = new AjaxResponse();
-
+  private function _lockForm(AjaxResponse &$ajax_response) {
     $ajax_response->addCommand(
       new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', TRUE])
     );
@@ -151,34 +132,29 @@ class SignupForm extends FormBase
     $ajax_response->addCommand(
       new InvokeCommand('#edit-register', 'attr', ['disabled', TRUE])
     );
+  }
 
-    $this->registerUser($form_state->getValue('hydro_username'));
-
-    drupal_set_message(
-      t(
-        'Hydro Account <b><i>@username</i></b> has been linked.',
-        ['@username' => $form_state->getValue('hydro_username')]
-      )
-    );
-    $status_messages = array('#type' => 'status_messages');
-    $messages = \Drupal::service('renderer')->renderRoot($status_messages);
-    if (!empty($messages)) {
-      $ajax_response->addCommand(new PrependCommand('.layout-highlighted', $messages));
-    }
-
-    $this->tempStore->set('hydro_raindrop_message', $this->generateMessage());
-
-    // Display message.
+  /**
+   * Todo: comment
+   */
+  private function _unlockForm(AjaxResponse &$ajax_response) {
     $ajax_response->addCommand(
-      new HtmlCommand(
-        '.hydro-raindrop-message',
-        '6 digit message: ' . $this->tempStore->get('hydro_raindrop_message')
-      )
+      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', FALSE])
     );
-    
+
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-submit', 'attr', ['disabled', FALSE])
+      new InvokeCommand('#edit-register', 'attr', ['disabled', FALSE])
     );
+  }
+
+  /**
+   * Todo: comment
+   */
+  public function ajaxRegister(array &$form, FormStateInterface $form_state) {
+    $ajax_response = new AjaxResponse();
+
+    $this->_lockForm($ajax_response);
+    $this->registerUser($ajax_response, $form_state->getValue('hydro_username'));
 
     return $ajax_response;
   }
@@ -186,31 +162,59 @@ class SignupForm extends FormBase
   /**
    * Register a user by Hydro ID.
    */
-  public function registerUser(string $hydroId) {
+  protected function registerUser(AjaxResponse &$ajax_response, string $hydroId) {
     try {
       $this->getClient()->registerUser($hydroId);
+
+      drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been linked.', ['@username' => $hydroId]));
+
+      $this->generateCode($ajax_response);
     }
     catch (\Adrenth\Raindrop\Exception\UserAlreadyMappedToApplication $e) {
+      drupal_set_message(t('Hydro Account <b><i>@username</i></b> was already mapped to this application.', ['@username' => $hydroId]), 'warning');
 
+      $this->getClient()->unregisterUser($hydroId);
+      $this->getClient()->registerUser($hydroId);
+
+      $this->generateCode($ajax_response);
     }
+    catch (\Adrenth\Raindrop\Exception\UsernameDoesNotExist $e) {
+      drupal_set_message(t('Hydro Account <b><i>@username</i></b> does not exist.', ['@username' => $hydroId]), 'error');
+      $this->_unlockForm($ajax_response);
+    }
+
+    $ajax_response->addCommand(new HtmlCommand('.region-highlighted', ['#type' => 'status_messages']));
   }
 
   /**
-   * Generate 6 digit message.
+   * Generate 6 digit code.
    */
-  public function generateMessage() {
-    return $this->getClient()->generateMessage();
+  protected function generateCode(AjaxResponse &$ajax_response) {
+    $this->tempStore->set('hydro_raindrop_code', $this->getClient()->generateMessage());
+
+    // Display hydro_raindrop_code.
+    $ajax_response->addCommand(
+      new HtmlCommand(
+        '.hydro-raindrop-code',
+        '6 digit code: ' . $this->tempStore->get('hydro_raindrop_code')
+      )
+    );
+    
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-submit', 'attr', ['disabled', FALSE])
+    );
   }
 
   /**
    * Verify Hydro user signature.
    */
-  public function verifySignature(string $hydroId, int $message) {
+  protected function verifySignature(string $hydroId, int $code) {
     try {
-      $this->getClient()->verifySignature($hydroId, $message);
+      $this->getClient()->verifySignature($hydroId, $code);
+      drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been verified.', ['@username' => $hydroId]));
     }
     catch (\Adrenth\Raindrop\Exception\VerifySignatureFailed $e) {
-
+      drupal_set_message(t('Hydro Account <b><i>@username</i></b> could not be verified.', ['@username' => $hydroId]), 'error');
     }
   }
 
