@@ -60,9 +60,7 @@ class SignupForm extends FormBase
       '#suffix' => '</div>',
     ];
 
-    $form['actions']['#type'] = 'actions';
-
-    $form['actions']['register'] = [
+    $form['register'] = [
       '#type' => 'button',
       '#value' => $this->t('Link'),
       '#ajax' => array(
@@ -76,7 +74,7 @@ class SignupForm extends FormBase
       '#weight' => '1',
     ];
 
-    $form['actions']['submit'] = [
+    $form['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Successful link, proceed to verification'),
       '#attributes' => [
