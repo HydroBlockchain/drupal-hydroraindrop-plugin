@@ -2,17 +2,71 @@
 
 namespace Drupal\hydro_raindrop\Form;
 
+require __DIR__ . '/../../vendor/autoload.php';
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\InvokeCommand;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Class SignupForm.
  */
 class SignupForm extends FormBase
 {
+
+  // Todo: comment
+  private $client;
+
+  /**
+   * Drupal\Core\Config\ConfigFactoryInterface definition.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * Constructs a new SignupForm object.
+   */
+  public function __construct(
+    ConfigFactoryInterface $config_factory
+  ) {
+    $this->configFactory = $config_factory;
+
+    $config = $this->config('hydro_raindrop.settings');
+
+    $clientId = $config->get('client_id');
+    $clientSecret = $config->get('client_secret');
+    $applicationId = $config->get('application_id');
+
+    $settings = new \Adrenth\Raindrop\ApiSettings(
+        $clientId,
+        $clientSecret,
+        new \Adrenth\Raindrop\Environment\SandboxEnvironment
+    );
+
+    // Create token storage for storing the API's access token.
+    $tokenStorage = new \Adrenth\Raindrop\TokenStorage\FileTokenStorage(__DIR__ . '/token.txt');
+
+    // Ideally create your own TokenStorage adapter. 
+    // The shipped FileTokenStorage is purely an example of how to create your own.
+
+    /*
+    * Client-side calls
+    */
+    $this->client = new \Adrenth\Raindrop\Client($settings, $tokenStorage, $applicationId);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('config.factory')
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -41,7 +95,7 @@ class SignupForm extends FormBase
       '#type' => 'button',
       '#value' => $this->t('Link'),
       '#ajax' => array(
-        'callback' => '::LinkAccount',
+        'callback' => '::linkAccount',
         'wrapper' => $this->getFormId(),
         'method' => 'replace',
         'event' => 'click',
@@ -84,7 +138,10 @@ class SignupForm extends FormBase
 
   }
 
-  public static function LinkAccount(array &$form, FormStateInterface $form_state)
+  /**
+   * Todo: comment
+   */
+  protected static function linkAccount(array &$form, FormStateInterface $form_state)
   {
     $ajax_response = new AjaxResponse();
 
@@ -96,7 +153,7 @@ class SignupForm extends FormBase
       new InvokeCommand('#edit-link-account', 'attr', ['disabled', 'disabled'])
     );
 
-    sleep(1.75);
+    $this->register($form_state->getValue('hydro_username'));
 
     $ajax_response->addCommand(
       new HtmlCommand(
@@ -113,14 +170,43 @@ class SignupForm extends FormBase
     );
 
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-link-account', 'css', ['display', 'none'])
-    );
-
-    $ajax_response->addCommand(
       new InvokeCommand('#edit-submit', 'attr', ['style', 'margin-left: 0'])
     );
 
     return $ajax_response;
+  }
+
+  /**
+   * Register a user by Hydro ID.
+   *
+   * @return string
+   *   Return Todo: comment
+   */
+  public function register(string $hydroId) {
+    $this->client->registerUser($hydroId);
+
+    // return [
+    //   '#type' => 'markup',
+    //   '#markup' => $this->t('Implement method: register')
+    // ];
+  }
+  /**
+   * Verify Hydro user.
+   *
+   * @return string
+   *   Return Todo: comment
+   */
+  public function verify(string $hydroId) {
+    // Generate 6 digit message
+    $message = $client->generateMessage();
+
+    // Verify signature
+    $client->verifySignature($hydroId, $message);
+
+    return [
+      '#type' => 'markup',
+      '#markup' => $this->t('Implement method: verify')
+    ];
   }
 
 }
