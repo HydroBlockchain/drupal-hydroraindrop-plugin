@@ -5,6 +5,7 @@ namespace Drupal\hydro_raindrop\Form;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\InvokeCommand;
+use Drupal\Core\Ajax\PrependCommand;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\User\PrivateTempStoreFactory;
@@ -101,8 +102,10 @@ class SignupForm extends FormBase
     $this->verifySignature($form_state->getValue('hydro_username'), (int) $this->tempStore->get('hydro_raindrop_message'));
 
     drupal_set_message(
-      $this->t('Hydro Account <b><i>@username</i></b> has been verified.',
-      ['@username' => $form_state->getValue('hydro_username')])
+      t(
+        'Hydro Account <b><i>@username</i></b> has been verified.',
+        ['@username' => $form_state->getValue('hydro_username')]
+      )
     );
     
   }
@@ -151,20 +154,17 @@ class SignupForm extends FormBase
 
     $this->registerUser($form_state->getValue('hydro_username'));
 
-    // Account registered!
-    $ajax_response->addCommand(
-      new HtmlCommand(
-        '.region-highlighted',
-        '<div role="contentinfo" aria-label="Status message" class="messages messages--status">
-          <div class="messages__content container">
-          <h2 class="visually-hidden">Status message</h2>
-            <ul class="messages__list">
-              <li class="messages__item">' . t('Hydro Account <b><i>@username</i></b> has been linked.', ['@username' => $form_state->getValue('hydro_username')]) . '</li>
-            </ul>
-          </div>
-        </div>'
+    drupal_set_message(
+      t(
+        'Hydro Account <b><i>@username</i></b> has been linked.',
+        ['@username' => $form_state->getValue('hydro_username')]
       )
     );
+    $status_messages = array('#type' => 'status_messages');
+    $messages = \Drupal::service('renderer')->renderRoot($status_messages);
+    if (!empty($messages)) {
+      $ajax_response->addCommand(new PrependCommand('.layout-highlighted', $messages));
+    }
 
     $this->tempStore->set('hydro_raindrop_message', $this->generateMessage());
 
