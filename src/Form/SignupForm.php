@@ -2,7 +2,6 @@
 
 namespace Drupal\hydro_raindrop\Form;
 
-require __DIR__ . '/../../vendor/autoload.php';
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\InvokeCommand;

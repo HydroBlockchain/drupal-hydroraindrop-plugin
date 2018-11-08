@@ -8,9 +8,9 @@
   "minimum-stability": "dev",
   "authors": [
     {
-        "name": "Tommy Cox (tommycox)",
-        "homepage": "https://www.drupal.org/u/tommycox",
-        "role": "Maintainer"
+      "name": "Tommy Cox (tommycox)",
+      "homepage": "https://www.drupal.org/u/tommycox",
+      "role": "Maintainer"
     }
   ],
   "support": {
@@ -18,6 +18,8 @@
     "source": "http://cgit.drupalcode.org/hydro_raindrop"
   },
   "require": {
-    "adrenth/raindrop-sdk": "dev-master"
+    "php": "^7.0",
+    "composer/installers": "^1.0",
+    "adrenth/raindrop-sdk": "^1.2"
   }
 }
