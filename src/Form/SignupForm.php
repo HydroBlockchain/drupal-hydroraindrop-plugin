@@ -5,9 +5,9 @@ namespace Drupal\hydro_raindrop\Form;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\InvokeCommand;
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\User\PrivateTempStoreFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -16,24 +16,103 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class SignupForm extends FormBase
 {
 
-  // Todo: comment
-  private $client;
-
-  /**
-   * Drupal\Core\Config\ConfigFactoryInterface definition.
-   *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface
-   */
-  protected $configFactory;
+  protected $tempStore;
 
   /**
    * Constructs a new SignupForm object.
    */
-  public function __construct(
-    ConfigFactoryInterface $config_factory
-  ) {
-    $this->configFactory = $config_factory;
+  public function __construct(PrivateTempStoreFactory $temp_store_factory) {
+    $this->tempStore = $temp_store_factory->get('hydro_raindrop');
+  }
+ 
+  /**
+   * Todo: comment
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('user.private_tempstore')
+    );
+  }
 
+  /**
+   * {@inheritdoc}
+   */
+  public function getFormId() {
+    return 'signup-form';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildForm(array $form, FormStateInterface $form_state) {
+
+    $form['hydro_username'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Hydro Username'),
+      '#description' => 'Enter your Hydro username, visible in the Hydro mobile app.',
+      '#maxlength' => 7,
+      '#size' => 7,
+      '#weight' => '0',
+    ];
+
+    $form['hydro_raindrop_message'] = [
+      '#prefix' => '<div class="hydro-raindrop-message">',
+      '#suffix' => '</div>',
+    ];
+
+    $form['actions']['#type'] = 'actions';
+
+    $form['actions']['register'] = [
+      '#type' => 'button',
+      '#value' => $this->t('Link'),
+      '#ajax' => array(
+        'callback' => '::ajaxRegister',
+        'event' => 'click',
+        'progress' => [
+          'type' => 'throbber',
+          'message' => $this->t('Linking...'),
+        ],
+      ),
+      '#weight' => '1',
+    ];
+
+    $form['actions']['submit'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Successful link, proceed to verification'),
+      '#attributes' => [
+        'disabled' => 'disabled'
+      ],
+      '#weight' => '2',
+    ];
+
+    return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state)
+  {
+    parent::validateForm($form, $form_state);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    $this->verifySignature($form_state->getValue('hydro_username'), (int) $this->tempStore->get('hydro_raindrop_message'));
+
+    drupal_set_message(
+      $this->t('Hydro Account <b><i>@username</i></b> has been verified.',
+      ['@username' => $form_state->getValue('hydro_username')])
+    );
+    
+  }
+
+  /**
+   * Todo: comment
+   */
+  private function getClient() {
     $config = $this->config('hydro_raindrop.settings');
 
     $clientId = $config->get('client_id');
@@ -55,105 +134,26 @@ class SignupForm extends FormBase
     /*
     * Client-side calls
     */
-    $this->client = new \Adrenth\Raindrop\Client($settings, $tokenStorage, $applicationId);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
-    return new static(
-      $container->get('config.factory')
-    );
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getFormId()
-  {
-    return 'signup_form';
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function buildForm(array $form, FormStateInterface $form_state)
-  {
-    $form['hydro_username'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Hydro Username'),
-      '#description' => 'Enter your Hydro username, visible in the Hydro mobile app.',
-      '#maxlength' => 7,
-      '#size' => 7,
-      '#weight' => '0',
-    ];
-
-    $form['actions']['#type'] = 'actions';
-    $form['actions']['link_account'] = [
-      '#type' => 'button',
-      '#value' => $this->t('Link'),
-      '#ajax' => array(
-        'callback' => '::linkAccount',
-        'wrapper' => $this->getFormId(),
-        'method' => 'replace',
-        'event' => 'click',
-        'progress' => [
-          'type' => 'throbber',
-          'message' => $this->t('Linking...'),
-        ],
-      ),
-      '#weight' => '1',
-    ];
-    $form['actions']['submit'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Successful link, proceed to verification'),
-      '#attributes' => [
-        'style' => 'display: none'
-      ],
-      '#weight' => '2',
-    ];
-
-    return $form;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function validateForm(array &$form, FormStateInterface $form_state)
-  {
-    parent::validateForm($form, $form_state);
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function submitForm(array &$form, FormStateInterface $form_state)
-  {
-    // Display result.
-    foreach ($form_state->getValues() as $key => $value) {
-      drupal_set_message($key . ': ' . $value);
-    }
-
+    return new \Adrenth\Raindrop\Client($settings, $tokenStorage, $applicationId);
   }
 
   /**
    * Todo: comment
    */
-  protected static function linkAccount(array &$form, FormStateInterface $form_state)
-  {
+  public function ajaxRegister(array &$form, FormStateInterface $form_state) {
     $ajax_response = new AjaxResponse();
 
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', true])
+      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', TRUE])
     );
 
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-link-account', 'attr', ['disabled', 'disabled'])
+      new InvokeCommand('#edit-register', 'attr', ['disabled', TRUE])
     );
 
-    $this->register($form_state->getValue('hydro_username'));
+    $this->registerUser($form_state->getValue('hydro_username'));
 
+    // Account registered!
     $ajax_response->addCommand(
       new HtmlCommand(
         '.region-highlighted',
@@ -168,8 +168,18 @@ class SignupForm extends FormBase
       )
     );
 
+    $this->tempStore->set('hydro_raindrop_message', $this->generateMessage());
+
+    // Display message.
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-submit', 'attr', ['style', 'margin-left: 0'])
+      new HtmlCommand(
+        '.hydro-raindrop-message',
+        '6 digit message: ' . $this->tempStore->get('hydro_raindrop_message')
+      )
+    );
+    
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-submit', 'attr', ['disabled', FALSE])
     );
 
     return $ajax_response;
@@ -177,35 +187,33 @@ class SignupForm extends FormBase
 
   /**
    * Register a user by Hydro ID.
-   *
-   * @return string
-   *   Return Todo: comment
    */
-  public function register(string $hydroId) {
-    $this->client->registerUser($hydroId);
+  public function registerUser(string $hydroId) {
+    try {
+      $this->getClient()->registerUser($hydroId);
+    }
+    catch (\Adrenth\Raindrop\Exception\UserAlreadyMappedToApplication $e) {
 
-    // return [
-    //   '#type' => 'markup',
-    //   '#markup' => $this->t('Implement method: register')
-    // ];
+    }
   }
+
   /**
-   * Verify Hydro user.
-   *
-   * @return string
-   *   Return Todo: comment
+   * Generate 6 digit message.
    */
-  public function verify(string $hydroId) {
-    // Generate 6 digit message
-    $message = $client->generateMessage();
+  public function generateMessage() {
+    return $this->getClient()->generateMessage();
+  }
 
-    // Verify signature
-    $client->verifySignature($hydroId, $message);
+  /**
+   * Verify Hydro user signature.
+   */
+  public function verifySignature(string $hydroId, int $message) {
+    try {
+      $this->getClient()->verifySignature($hydroId, $message);
+    }
+    catch (\Adrenth\Raindrop\Exception\VerifySignatureFailed $e) {
 
-    return [
-      '#type' => 'markup',
-      '#markup' => $this->t('Implement method: verify')
-    ];
+    }
   }
 
 }
