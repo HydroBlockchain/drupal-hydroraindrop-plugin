@@ -61,8 +61,6 @@ class SignupForm extends FormBase
       '#weight' => '2',
     ];
 
-    $form['#attached']['library'][] = 'hydro_raindrop/link-account';
-
     return $form;
   }
 
