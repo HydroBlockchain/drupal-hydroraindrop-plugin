@@ -7,6 +7,7 @@ use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\InvokeCommand;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\user\Entity\User;
 use Drupal\User\PrivateTempStoreFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -90,7 +91,14 @@ class SignupForm extends FormBase
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
+    // If the user passes verification...
     if ($this->verifySignature($form_state->getValue('hydro_username'), (int) $this->tempStore->get('hydro_raindrop_code'))) {
+      // Flip "Activated" boolean on user to enabled.
+      $user = User::load(\Drupal::currentUser()->id());
+      $user->set('field_activate_raindrop', TRUE);
+      $user->save();
+
+      // Redirect to profile page.
       $form_state->setRedirect('user.page');
     }
   }
