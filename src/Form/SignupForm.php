@@ -96,24 +96,26 @@ class SignupForm extends FormBase
   /**
    * Todo: comment
    */
-  private function getClient() {
+  private function getClient(
+    \Adrenth\Raindrop\Environment $environment = NULL,
+    \Adrenth\Raindrop\TokenStorage $tokenStorage = NULL
+  ) {
     $config = $this->config('hydro_raindrop.settings');
-
     $clientId = $config->get('client_id');
     $clientSecret = $config->get('client_secret');
     $applicationId = $config->get('application_id');
+    if (!$environment) {
+      $environment = new \Adrenth\Raindrop\Environment\SandboxEnvironment;
+    }
+    if (!$tokenStorage) {
+      $tokenStorage = new \Adrenth\Raindrop\TokenStorage\FileTokenStorage(__DIR__ . '/token.txt');
+    }
 
     $settings = new \Adrenth\Raindrop\ApiSettings(
-        $clientId,
-        $clientSecret,
-        new \Adrenth\Raindrop\Environment\SandboxEnvironment
+      $clientId,
+      $clientSecret,
+      $environment
     );
-
-    // Create token storage for storing the API's access token.
-    $tokenStorage = new \Adrenth\Raindrop\TokenStorage\FileTokenStorage(__DIR__ . '/token.txt');
-
-    // Ideally create your own TokenStorage adapter. 
-    // The shipped FileTokenStorage is purely an example of how to create your own.
 
     /*
     * Client-side calls
@@ -122,49 +124,17 @@ class SignupForm extends FormBase
   }
 
   /**
-   * Todo: comment
-   */
-  private function _lockForm(AjaxResponse &$ajax_response) {
-    $ajax_response->addCommand(
-      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', TRUE])
-    );
-
-    $ajax_response->addCommand(
-      new InvokeCommand('#edit-register', 'attr', ['disabled', TRUE])
-    );
-  }
-
-  /**
-   * Todo: comment
-   */
-  private function _unlockForm(AjaxResponse &$ajax_response) {
-    $ajax_response->addCommand(
-      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', FALSE])
-    );
-
-    $ajax_response->addCommand(
-      new InvokeCommand('#edit-register', 'attr', ['disabled', FALSE])
-    );
-  }
-
-  /**
-   * Todo: comment
+   * Async register a user by Hydro ID.
    */
   public function ajaxRegister(array &$form, FormStateInterface $form_state) {
     $ajax_response = new AjaxResponse();
+    $client = $this->getClient();
+    $hydroId = $form_state->getValue('hydro_username');
 
     $this->_lockForm($ajax_response);
-    $this->registerUser($ajax_response, $form_state->getValue('hydro_username'));
 
-    return $ajax_response;
-  }
-
-  /**
-   * Register a user by Hydro ID.
-   */
-  protected function registerUser(AjaxResponse &$ajax_response, string $hydroId) {
     try {
-      $this->getClient()->registerUser($hydroId);
+      $client->registerUser($hydroId);
 
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been linked.', ['@username' => $hydroId]));
 
@@ -173,8 +143,8 @@ class SignupForm extends FormBase
     catch (\Adrenth\Raindrop\Exception\UserAlreadyMappedToApplication $e) {
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> was already mapped to this application.', ['@username' => $hydroId]), 'warning');
 
-      $this->getClient()->unregisterUser($hydroId);
-      $this->getClient()->registerUser($hydroId);
+      $client->unregisterUser($hydroId);
+      $client->registerUser($hydroId);
 
       $this->generateCode($ajax_response);
     }
@@ -184,13 +154,16 @@ class SignupForm extends FormBase
     }
 
     $ajax_response->addCommand(new HtmlCommand('.region-highlighted', ['#type' => 'status_messages']));
+
+    return $ajax_response;
   }
 
   /**
    * Generate 6 digit code.
    */
   protected function generateCode(AjaxResponse &$ajax_response) {
-    $this->tempStore->set('hydro_raindrop_code', $this->getClient()->generateMessage());
+    $client = $this->getClient();
+    $this->tempStore->set('hydro_raindrop_code', $client->generateMessage());
 
     // Display hydro_raindrop_code.
     $ajax_response->addCommand(
@@ -209,13 +182,40 @@ class SignupForm extends FormBase
    * Verify Hydro user signature.
    */
   protected function verifySignature(string $hydroId, int $code) {
+    $client = $this->getClient();
     try {
-      $this->getClient()->verifySignature($hydroId, $code);
+      $client->verifySignature($hydroId, $code);
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been verified.', ['@username' => $hydroId]));
     }
     catch (\Adrenth\Raindrop\Exception\VerifySignatureFailed $e) {
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> could not be verified.', ['@username' => $hydroId]), 'error');
     }
+  }
+
+  /**
+   * Todo: comment
+   */
+  protected function _lockForm(AjaxResponse &$ajax_response) {
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', TRUE])
+    );
+
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-register', 'attr', ['disabled', TRUE])
+    );
+  }
+
+  /**
+   * Todo: comment
+   */
+  protected function _unlockForm(AjaxResponse &$ajax_response) {
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', FALSE])
+    );
+
+    $ajax_response->addCommand(
+      new InvokeCommand('#edit-register', 'attr', ['disabled', FALSE])
+    );
   }
 
 }
