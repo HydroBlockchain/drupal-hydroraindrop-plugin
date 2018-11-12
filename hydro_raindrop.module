@@ -48,7 +48,7 @@ function hydro_raindrop_user_login_submit(&$form, FormStateInterface $form_state
     // @see \Drupal\user\Form\UserLoginForm::submitForm()
     $request = \Drupal::service('request_stack')->getCurrentRequest();
     if (!$request->request->has('destination')) {
-      $form_state->setRedirect('hydro_raindrop.activate');
+      $form_state->setRedirect('hydro_raindrop.link_account');
     }
     else {
       $request->query->set('destination', $request->request->get('destination'));

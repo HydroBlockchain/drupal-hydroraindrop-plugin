@@ -8,10 +8,10 @@ hydro_raindrop.settings_form:
   options:
     _admin_route: TRUE
 
-hydro_raindrop.activate:
-  path: '/activate-raindrop'
+hydro_raindrop.link_account:
+  path: '/link-raindrop'
   defaults:
-    _form: '\Drupal\hydro_raindrop\Form\SignupForm'
-    _title: 'Activate Hydro Raindrop'
+    _form: '\Drupal\hydro_raindrop\Form\LinkAccountForm'
+    _title: 'Link Hydro Raindrop Account'
   requirements:
     _role: 'authenticated'

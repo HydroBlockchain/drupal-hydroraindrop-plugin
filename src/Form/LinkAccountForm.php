@@ -12,22 +12,24 @@ use Drupal\User\PrivateTempStoreFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Class SignupForm.
+ * Class LinkAccountForm.
  */
-class SignupForm extends FormBase
+class LinkAccountForm extends FormBase
 {
 
   protected $tempStore;
 
   /**
-   * Constructs a new SignupForm object.
+   * Constructs a new LinkAccountForm object.
+   *
+   * @param PrivateTempStoreFactory $temp_store_factory
    */
   public function __construct(PrivateTempStoreFactory $temp_store_factory) {
     $this->tempStore = $temp_store_factory->get('hydro_raindrop');
   }
  
   /**
-   * Todo: comment
+   * {@inheritDoc}
    */
   public static function create(ContainerInterface $container) {
     return new static(
@@ -39,7 +41,7 @@ class SignupForm extends FormBase
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'signup-form';
+    return 'link-account-form';
   }
 
   /**
@@ -47,7 +49,7 @@ class SignupForm extends FormBase
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
 
-    $form['hydro_username'] = [
+    $form['hydro_raindrop_id'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Hydro Username'),
       '#description' => 'Enter your Hydro username, visible in the Hydro mobile app.',
@@ -56,26 +58,26 @@ class SignupForm extends FormBase
       '#weight' => '0',
     ];
 
-    $form['hydro_raindrop_code'] = [
-      '#prefix' => '<div class="hydro-raindrop-code">',
+    $form['hydro_raindrop_message'] = [
+      '#prefix' => '<div id="hydro-raindrop-message">',
       '#suffix' => '</div>',
     ];
 
-    $form['register'] = [
+    $form['hydro_raindrop_ajax_register_user'] = [
       '#type' => 'button',
-      '#value' => $this->t('Link'),
+      '#value' => $this->t('Register'),
       '#ajax' => array(
-        'callback' => '::ajaxRegister',
+        'callback' => '::ajaxRegisterUser',
         'event' => 'click',
         'progress' => [
           'type' => 'throbber',
-          'message' => $this->t('Linking...'),
+          'message' => $this->t('Registering...'),
         ],
       ),
       '#weight' => '1',
     ];
 
-    $form['submit'] = [
+    $form['hydro_raindrop_submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Successful link, proceed to verification'),
       '#attributes' => [
@@ -92,10 +94,11 @@ class SignupForm extends FormBase
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     // If the user passes verification...
-    if ($this->verifySignature($form_state->getValue('hydro_username'), (int) $this->tempStore->get('hydro_raindrop_code'))) {
-      // Flip "Activated" boolean on user to enabled.
+    if ($this->verifySignature($form_state->getValue('hydro_raindrop_id'), (int) $this->tempStore->get('hydro_raindrop_message'))) {
+      // Flip "Link Hydro Raindrop" boolean on user to enabled.
       $user = User::load(\Drupal::currentUser()->id());
-      $user->set('field_activate_raindrop', TRUE);
+      $user->set('field_link_hydro_raindrop', TRUE);
+      // TODO: And save the user's Hydro ID.
       $user->save();
 
       // Redirect to profile page.
@@ -104,7 +107,12 @@ class SignupForm extends FormBase
   }
 
   /**
-   * Todo: comment
+   * Uses the Raindrop developer's API credentials to return a client object.
+   *
+   * @param \Adrenth\Raindrop\Environment $environment
+   * @param \Adrenth\Raindrop\TokenStorage $tokenStorage
+   *
+   * @return \Adrenth\Raindrop\Client
    */
   private function getClient(
     \Adrenth\Raindrop\Environment $environment = NULL,
@@ -127,28 +135,30 @@ class SignupForm extends FormBase
       $environment
     );
 
-    /*
-    * Client-side calls
-    */
     return new \Adrenth\Raindrop\Client($settings, $tokenStorage, $applicationId);
   }
 
   /**
-   * Async register a user by Hydro ID.
+   * Asynchronously register a user using the provided Hydro ID.
+   *
+   * @param array $form
+   * @param FormStateInterface $form_state
+   *
+   * @return Drupal\Core\Ajax\AjaxResponse
    */
-  public function ajaxRegister(array &$form, FormStateInterface $form_state) {
+  public function ajaxRegisterUser(array &$form, FormStateInterface $form_state) {
     $ajax_response = new AjaxResponse();
     $client = $this->getClient();
-    $hydroId = $form_state->getValue('hydro_username');
+    $hydroId = $form_state->getValue('hydro_raindrop_id');
 
     $this->_lockForm($ajax_response);
 
     try {
       $client->registerUser($hydroId);
 
-      drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been linked.', ['@username' => $hydroId]));
+      drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been successfully registered.', ['@username' => $hydroId]));
 
-      $this->generateCode($ajax_response);
+      $this->ajaxGenerateMessage($ajax_response);
     }
     catch (\Adrenth\Raindrop\Exception\UserAlreadyMappedToApplication $e) {
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> was already mapped to this application.', ['@username' => $hydroId]), 'warning');
@@ -156,7 +166,7 @@ class SignupForm extends FormBase
       $client->unregisterUser($hydroId);
       $client->registerUser($hydroId);
 
-      $this->generateCode($ajax_response);
+      $this->ajaxGenerateMessage($ajax_response);
     }
     catch (\Adrenth\Raindrop\Exception\UsernameDoesNotExist $e) {
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> does not exist.', ['@username' => $hydroId]), 'error');
@@ -169,32 +179,39 @@ class SignupForm extends FormBase
   }
 
   /**
-   * Generate 6 digit code.
+   * Generate 6 digit message.
+   *
+   * @param AjaxResponse $ajax_response
    */
-  protected function generateCode(AjaxResponse &$ajax_response) {
+  protected function ajaxGenerateMessage(AjaxResponse &$ajax_response) {
     $client = $this->getClient();
-    $this->tempStore->set('hydro_raindrop_code', $client->generateMessage());
+    $this->tempStore->set('hydro_raindrop_message', $client->generateMessage());
 
-    // Display hydro_raindrop_code.
+    // Display hydro_raindrop_message.
     $ajax_response->addCommand(
       new HtmlCommand(
-        '.hydro-raindrop-code',
-        '6 digit code: ' . $this->tempStore->get('hydro_raindrop_code')
+        '#hydro-raindrop-message',
+        '6 digit message: ' . $this->tempStore->get('hydro_raindrop_message')
       )
     );
     
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-submit', 'attr', ['disabled', FALSE])
+      new InvokeCommand('#edit-hydro-raindrop-submit', 'attr', ['disabled', FALSE])
     );
   }
 
   /**
    * Verify Hydro user signature.
+   *
+   * @param string $hydroId
+   * @param integer $message
+   *
+   * @return bool
    */
-  protected function verifySignature(string $hydroId, int $code) {
+  protected function verifySignature(string $hydroId, int $message) {
     $client = $this->getClient();
     try {
-      $client->verifySignature($hydroId, $code);
+      $client->verifySignature($hydroId, $message);
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been verified.', ['@username' => $hydroId]));
       return TRUE;
     }
@@ -205,28 +222,32 @@ class SignupForm extends FormBase
   }
 
   /**
-   * Todo: comment
+   * Prevents user from editing their ID once clicking the Register button and disables button.
+   *
+   * @param AjaxResponse $ajax_response
    */
   protected function _lockForm(AjaxResponse &$ajax_response) {
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', TRUE])
+      new InvokeCommand('#edit-hydro-raindrop-id', 'attr', ['readonly', TRUE])
     );
 
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-register', 'attr', ['disabled', TRUE])
+      new InvokeCommand('#edit-hydro-raindrop-ajax-register-user', 'attr', ['disabled', TRUE])
     );
   }
 
   /**
-   * Todo: comment
+   * Allows a user to edit their ID and re-attempt to register (i.e. in the case of an error).
+   *
+   * @param AjaxResponse $ajax_response
    */
   protected function _unlockForm(AjaxResponse &$ajax_response) {
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-hydro-username', 'attr', ['readonly', FALSE])
+      new InvokeCommand('#edit-hydro-raindrop-id', 'attr', ['readonly', FALSE])
     );
 
     $ajax_response->addCommand(
-      new InvokeCommand('#edit-register', 'attr', ['disabled', FALSE])
+      new InvokeCommand('#edit-hydro-raindrop-ajax-register-user', 'attr', ['disabled', FALSE])
     );
   }
 

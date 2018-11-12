@@ -16,7 +16,7 @@ function hydro_raindrop_install() {
     ],
     'third_party_settings' => []
   ];
-  $form_config->set('content.field_activate_raindrop', $form_settings)->save();
+  $form_config->set('content.field_link_hydro_raindrop', $form_settings)->save();
 
   // Set User profile display defaults
   $profile_config = \Drupal::service('config.factory')->getEditable('core.entity_view_display.user.user.default');
@@ -32,7 +32,7 @@ function hydro_raindrop_install() {
     ],
     'third_party_settings' => [],
   ];
-  $profile_config->set('content.field_activate_raindrop', $profile_settings)->save();
+  $profile_config->set('content.field_link_hydro_raindrop', $profile_settings)->save();
 
 }
 
@@ -43,10 +43,10 @@ function hydro_raindrop_uninstall() {
   
   // Delete from User form display
   $form_config = \Drupal::service('config.factory')->getEditable('core.entity_form_display.user.user.default');
-  $form_config->clear('content.field_activate_raindrop')->save();
+  $form_config->clear('content.field_link_hydro_raindrop')->save();
 
   // Delete from User profile display
   $profile_config = \Drupal::service('config.factory')->getEditable('core.entity_view_display.user.user.default');
-  $profile_config->clear('content.field_activate_raindrop')->save();
+  $profile_config->clear('content.field_link_hydro_raindrop')->save();
 
 }
