@@ -90,7 +90,9 @@ class SignupForm extends FormBase
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $this->verifySignature($form_state->getValue('hydro_username'), (int) $this->tempStore->get('hydro_raindrop_code'));
+    if ($this->verifySignature($form_state->getValue('hydro_username'), (int) $this->tempStore->get('hydro_raindrop_code'))) {
+      $form_state->setRedirect('user.page');
+    }
   }
 
   /**
@@ -186,10 +188,12 @@ class SignupForm extends FormBase
     try {
       $client->verifySignature($hydroId, $code);
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been verified.', ['@username' => $hydroId]));
+      return TRUE;
     }
     catch (\Adrenth\Raindrop\Exception\VerifySignatureFailed $e) {
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> could not be verified.', ['@username' => $hydroId]), 'error');
     }
+    return FALSE;
   }
 
   /**
