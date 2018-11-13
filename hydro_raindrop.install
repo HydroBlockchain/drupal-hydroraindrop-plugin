@@ -8,7 +8,7 @@ function hydro_raindrop_install() {
   // Set User form display defaults
   $form_config = \Drupal::service('config.factory')->getEditable('core.entity_form_display.user.user.default');
   $form_display = [
-    'type' => 'boolean_checkbox',
+    'type' => 'options_buttons',
     'weight' => -15,
     'region' => 'content',
     'settings' => [
