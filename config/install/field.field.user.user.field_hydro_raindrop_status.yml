@@ -2,18 +2,18 @@ langcode: en
 status: true
 dependencies:
   config:
-    - field.storage.user.field_hydro_raindrop_link
+    - field.storage.user.field_hydro_raindrop_status
   module:
     - user
     - hydro_raindrop
   enforced:
     module:
       - hydro_raindrop
-id: user.user.field_hydro_raindrop_link
-field_name: field_hydro_raindrop_link
+id: user.user.field_hydro_raindrop_status
+field_name: field_hydro_raindrop_status
 entity_type: user
 bundle: user
-label: 'Hydro Raindrop Link'
+label: 'Hydro Raindrop Status'
 description: 'Implement additional security to your account for logins using the blockchain based Hydro MFA app.'
 required: false
 translatable: false

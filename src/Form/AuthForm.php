@@ -48,7 +48,7 @@ class LinkAccountForm extends FormBase {
    * {@inheritdoc}
    */
   public function getFormId() {
-    return 'link-account-form';
+    return 'hydro-raindrop-auth-form';
   }
 
   /**
@@ -86,7 +86,7 @@ class LinkAccountForm extends FormBase {
 
     $form['hydro_raindrop_submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Successful link, proceed to verification'),
+      '#value' => $this->t('Authenticate'),
       '#attributes' => [
         'disabled' => 'disabled'
       ],
@@ -105,15 +105,16 @@ class LinkAccountForm extends FormBase {
     
     // If the user passes verification...
     if ($this->verifySignature($hydroId, $message)) {
-      // Attach the Raindrop ID to user and indicate that Raindrop is enabled.
+      // Indicate that Raindrop is linked and authenticated.
       $user = User::load(\Drupal::currentUser()->id());
-      $user->set('field_hydro_raindrop_link', TRUE);
-      $user->set('field_hydro_raindrop_id', $hydroId);
+      $user->set('field_hydro_raindrop_status', TRUE);
       $user->save();
 
       // Redirect to profile page.
       $form_state->setRedirect('user.page');
     }
+
+    // Otherwise the form will reload with an error from verifySignature.
   }
 
   /**
@@ -135,6 +136,11 @@ class LinkAccountForm extends FormBase {
       $client->registerUser($hydroId);
 
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been successfully registered.', ['@username' => $hydroId]));
+
+      // At this point we can attach the Hydro ID to the user.
+      $user = User::load(\Drupal::currentUser()->id());
+      $user->set('field_hydro_raindrop_id', $hydroId);
+      $user->save();
 
       $this->ajaxGenerateMessage($ajax_response);
     }
