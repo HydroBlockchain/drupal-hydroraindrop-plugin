@@ -74,5 +74,5 @@ function hydro_raindrop_uninstall() {
   $profile_config = \Drupal::service('config.factory')->getEditable('core.entity_view_display.user.user.default');
   $profile_config->clear('content.field_hydro_raindrop_status')->save();
   $profile_config->clear('content.field_hydro_raindrop_id');
-  $form_config->save();
+  $profile_config->save();
 }

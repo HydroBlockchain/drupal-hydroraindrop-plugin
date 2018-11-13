@@ -3,6 +3,10 @@ status: true
 dependencies:
   module:
     - user
+    - hydro_raindrop
+  enforced:
+    module:
+      - hydro_raindrop
 id: user.field_hydro_raindrop_id
 field_name: field_hydro_raindrop_id
 entity_type: user
