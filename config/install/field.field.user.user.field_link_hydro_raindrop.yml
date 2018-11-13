@@ -22,6 +22,6 @@ default_value:
     value: 0
 default_value_callback: ''
 settings:
-  on_label: "Linked"
-  off_label: "Not Protected"
+  on_label: Linked
+  off_label: 'Not Protected'
 field_type: boolean

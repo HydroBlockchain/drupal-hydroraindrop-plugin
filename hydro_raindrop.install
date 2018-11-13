@@ -7,7 +7,7 @@ function hydro_raindrop_install() {
 
   // Set User form display defaults
   $form_config = \Drupal::service('config.factory')->getEditable('core.entity_form_display.user.user.default');
-  $form_settings = [
+  $form_display = [
     'type' => 'boolean_checkbox',
     'weight' => -15,
     'region' => 'content',
@@ -16,11 +16,23 @@ function hydro_raindrop_install() {
     ],
     'third_party_settings' => []
   ];
-  $form_config->set('content.field_link_hydro_raindrop', $form_settings)->save();
+  $form_config->set('content.field_link_hydro_raindrop', $form_display)->save();
+
+  $form_display = [
+    'type' => 'string_stextfield',
+    'weight' => -14,
+    'region' => 'content',
+    'settings' => [
+      'size' => 7,
+      'placeholder' => '',
+    ],
+    'third_party_settings' => []
+  ];
+  $form_config->set('content.field_hydro_raindrop_id', $form_display)->save();
 
   // Set User profile display defaults
   $profile_config = \Drupal::service('config.factory')->getEditable('core.entity_view_display.user.user.default');
-  $profile_settings = [
+  $view_display = [
     'type' => 'boolean',
     'weight' => 1,
     'region' => 'content',
@@ -32,21 +44,35 @@ function hydro_raindrop_install() {
     ],
     'third_party_settings' => [],
   ];
-  $profile_config->set('content.field_link_hydro_raindrop', $profile_settings)->save();
+  $profile_config->set('content.field_link_hydro_raindrop', $view_display)->save();
 
+  $view_display = [
+    'type' => 'string',
+    'weight' => 2,
+    'region' => 'content',
+    'label' => 'above',
+    'settings' => [
+      'link_to_entity' => FALSE,
+    ],
+    'third_party_settings' => [],
+  ];
+  $profile_config->set('content.field_hydro_raindrop_id', $view_display)->save();
 }
 
 /**
  * Implements hook_uninstall().
  */
 function hydro_raindrop_uninstall() {
-  
+
   // Delete from User form display
   $form_config = \Drupal::service('config.factory')->getEditable('core.entity_form_display.user.user.default');
-  $form_config->clear('content.field_link_hydro_raindrop')->save();
+  $form_config->clear('content.field_link_hydro_raindrop');
+  $form_config->clear('content.field_hydro_raindrop_id');
+  $form_config->save();
 
   // Delete from User profile display
   $profile_config = \Drupal::service('config.factory')->getEditable('core.entity_view_display.user.user.default');
   $profile_config->clear('content.field_link_hydro_raindrop')->save();
-
+  $profile_config->clear('content.field_hydro_raindrop_id');
+  $form_config->save();
 }
