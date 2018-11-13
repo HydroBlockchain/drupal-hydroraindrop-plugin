@@ -108,7 +108,7 @@ class LinkAccountForm extends FormBase
     if ($this->verifySignature($hydroId, $message)) {
       // Attach the Raindrop ID to user and indicate that Raindrop is enabled.
       $user = User::load(\Drupal::currentUser()->id());
-      $user->set('field_link_hydro_raindrop', TRUE);
+      $user->set('field_hydro_raindrop_link', TRUE);
       $user->set('field_hydro_raindrop_id', $hydroId);
       $user->save();
 

@@ -7,8 +7,8 @@ dependencies:
   enforced:
     module:
       - hydro_raindrop
-id: user.field_link_hydro_raindrop
-field_name: field_link_hydro_raindrop
+id: user.field_hydro_raindrop_link
+field_name: field_hydro_raindrop_link
 entity_type: user
 type: boolean
 settings: {  }
