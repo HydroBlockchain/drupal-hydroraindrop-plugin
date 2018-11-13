@@ -97,12 +97,15 @@ class LinkAccountForm extends FormBase
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
+    $hydroId = $form_state->getValue('hydro_raindrop_id');
+    $message = (int) $this->tempStore->get('hydro_raindrop_message');
+    
     // If the user passes verification...
-    if ($this->verifySignature($form_state->getValue('hydro_raindrop_id'), (int) $this->tempStore->get('hydro_raindrop_message'))) {
-      // Flip "Link Hydro Raindrop" boolean on user to enabled.
+    if ($this->verifySignature($hydroId, $message)) {
+      // Attach the Raindrop ID to user and indicate that Raindrop is enabled.
       $user = User::load(\Drupal::currentUser()->id());
       $user->set('field_link_hydro_raindrop', TRUE);
-      // TODO: And save the user's Hydro ID.
+      $user->set('field_hydro_raindrop_id', $hydroId);
       $user->save();
 
       // Redirect to profile page.
