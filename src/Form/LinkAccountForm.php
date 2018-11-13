@@ -19,8 +19,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Class LinkAccountForm.
  */
-class LinkAccountForm extends FormBase
-{
+class LinkAccountForm extends FormBase {
 
   /**
    * @var Drupal\User\PrivateTempStore
@@ -118,32 +117,6 @@ class LinkAccountForm extends FormBase
   }
 
   /**
-   * Uses the Raindrop developer's API credentials to return a client object.
-   *
-   * @param Environment $environment
-   *
-   * @return Client
-   */
-  public function getClient(Environment $environment = NULL): Client {
-    $config = $this->config('hydro_raindrop.settings');
-    $clientId = $config->get('client_id');
-    $clientSecret = $config->get('client_secret');
-    $applicationId = $config->get('application_id');
-    $tokenStorage = new PrivateTempStoreStorage($this->tempStore);
-    if (!$environment) {
-      $environment = new Environment\SandboxEnvironment;
-    }
-
-    $settings = new ApiSettings(
-      $clientId,
-      $clientSecret,
-      $environment
-    );
-
-    return new Client($settings, $tokenStorage, $applicationId);
-  }
-
-  /**
    * Asynchronously register a user using the provided Hydro ID.
    *
    * @param array $form
@@ -184,11 +157,37 @@ class LinkAccountForm extends FormBase
   }
 
   /**
+   * Uses the Raindrop developer's API credentials to return a client object.
+   *
+   * @param Environment $environment
+   *
+   * @return Client
+   */
+  protected function getClient(Environment $environment = NULL): Client {
+    $config = $this->config('hydro_raindrop.settings');
+    $clientId = $config->get('client_id');
+    $clientSecret = $config->get('client_secret');
+    $applicationId = $config->get('application_id');
+    $tokenStorage = new PrivateTempStoreStorage($this->tempStore);
+    if (!$environment) {
+      $environment = new Environment\SandboxEnvironment;
+    }
+
+    $settings = new ApiSettings(
+      $clientId,
+      $clientSecret,
+      $environment
+    );
+
+    return new Client($settings, $tokenStorage, $applicationId);
+  }
+
+  /**
    * Generate 6 digit message.
    *
    * @param AjaxResponse $ajax_response
    */
-  public function ajaxGenerateMessage(AjaxResponse &$ajax_response) {
+  protected function ajaxGenerateMessage(AjaxResponse &$ajax_response) {
     $client = $this->getClient();
     $this->tempStore->set('hydro_raindrop_message', $client->generateMessage());
 
@@ -213,7 +212,7 @@ class LinkAccountForm extends FormBase
    *
    * @return bool
    */
-  public function verifySignature(string $hydroId, int $message): bool {
+  protected function verifySignature(string $hydroId, int $message): bool {
     $client = $this->getClient();
     try {
       $client->verifySignature($hydroId, $message);
@@ -231,7 +230,7 @@ class LinkAccountForm extends FormBase
    *
    * @param AjaxResponse $ajax_response
    */
-  protected function _lockForm(AjaxResponse &$ajax_response) {
+  private function _lockForm(AjaxResponse &$ajax_response) {
     $ajax_response->addCommand(
       new InvokeCommand('#edit-hydro-raindrop-id', 'attr', ['readonly', TRUE])
     );
@@ -246,7 +245,7 @@ class LinkAccountForm extends FormBase
    *
    * @param AjaxResponse $ajax_response
    */
-  protected function _unlockForm(AjaxResponse &$ajax_response) {
+  private function _unlockForm(AjaxResponse &$ajax_response) {
     $ajax_response->addCommand(
       new InvokeCommand('#edit-hydro-raindrop-id', 'attr', ['readonly', FALSE])
     );
