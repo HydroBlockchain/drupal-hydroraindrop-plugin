@@ -57,7 +57,10 @@ class SettingsForm extends ConfigFormBase {
     $form['environment'] = [
       '#type' => 'select',
       '#title' => $this->t('Environment'),
-      '#options' => ['Production' => $this->t('Production'), 'Sandbox' => $this->t('Sandbox')],
+      '#options' => [
+        'Adrenth\Raindrop\Environment\ProductionEnvironment' => $this->t('Production'),
+        'Adrenth\Raindrop\Environment\SandboxEnvironment' => $this->t('Sandbox')
+      ],
       '#size' => 1,
       '#default_value' => $config->get('environment'),
     ];
