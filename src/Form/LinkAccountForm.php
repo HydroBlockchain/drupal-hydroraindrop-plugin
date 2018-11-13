@@ -7,6 +7,7 @@ use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\InvokeCommand;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\hydro_raindrop\TokenStorage\PrivateTempStoreStorage;
 use Drupal\user\Entity\User;
 use Drupal\User\PrivateTempStoreFactory;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -17,6 +18,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class LinkAccountForm extends FormBase
 {
 
+  /**
+   * @var Drupal\User\PrivateTempStore
+   */
   protected $tempStore;
 
   /**
@@ -110,23 +114,17 @@ class LinkAccountForm extends FormBase
    * Uses the Raindrop developer's API credentials to return a client object.
    *
    * @param \Adrenth\Raindrop\Environment $environment
-   * @param \Adrenth\Raindrop\TokenStorage $tokenStorage
    *
    * @return \Adrenth\Raindrop\Client
    */
-  private function getClient(
-    \Adrenth\Raindrop\Environment $environment = NULL,
-    \Adrenth\Raindrop\TokenStorage $tokenStorage = NULL
-  ) {
+  private function getClient(\Adrenth\Raindrop\Environment $environment = NULL) {
     $config = $this->config('hydro_raindrop.settings');
     $clientId = $config->get('client_id');
     $clientSecret = $config->get('client_secret');
     $applicationId = $config->get('application_id');
+    $tokenStorage = new PrivateTempStoreStorage($this->tempStore);
     if (!$environment) {
       $environment = new \Adrenth\Raindrop\Environment\SandboxEnvironment;
-    }
-    if (!$tokenStorage) {
-      $tokenStorage = new \Adrenth\Raindrop\TokenStorage\FileTokenStorage(__DIR__ . '/token.txt');
     }
 
     $settings = new \Adrenth\Raindrop\ApiSettings(
