@@ -2,6 +2,10 @@
 
 namespace Drupal\hydro_raindrop\Form;
 
+use Adrenth\Raindrop\ApiSettings;
+use Adrenth\Raindrop\Client;
+use Adrenth\Raindrop\Environment;
+use Adrenth\Raindrop\Exception;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\InvokeCommand;
@@ -116,27 +120,27 @@ class LinkAccountForm extends FormBase
   /**
    * Uses the Raindrop developer's API credentials to return a client object.
    *
-   * @param \Adrenth\Raindrop\Environment $environment
+   * @param Environment $environment
    *
-   * @return \Adrenth\Raindrop\Client
+   * @return Client
    */
-  private function getClient(\Adrenth\Raindrop\Environment $environment = NULL) {
+  public function getClient(Environment $environment = NULL): Client {
     $config = $this->config('hydro_raindrop.settings');
     $clientId = $config->get('client_id');
     $clientSecret = $config->get('client_secret');
     $applicationId = $config->get('application_id');
     $tokenStorage = new PrivateTempStoreStorage($this->tempStore);
     if (!$environment) {
-      $environment = new \Adrenth\Raindrop\Environment\SandboxEnvironment;
+      $environment = new Environment\SandboxEnvironment;
     }
 
-    $settings = new \Adrenth\Raindrop\ApiSettings(
+    $settings = new ApiSettings(
       $clientId,
       $clientSecret,
       $environment
     );
 
-    return new \Adrenth\Raindrop\Client($settings, $tokenStorage, $applicationId);
+    return new Client($settings, $tokenStorage, $applicationId);
   }
 
   /**
@@ -145,9 +149,9 @@ class LinkAccountForm extends FormBase
    * @param array $form
    * @param FormStateInterface $form_state
    *
-   * @return Drupal\Core\Ajax\AjaxResponse
+   * @return AjaxResponse
    */
-  public function ajaxRegisterUser(array &$form, FormStateInterface $form_state) {
+  public function ajaxRegisterUser(array &$form, FormStateInterface $form_state): AjaxResponse {
     $ajax_response = new AjaxResponse();
     $client = $this->getClient();
     $hydroId = $form_state->getValue('hydro_raindrop_id');
@@ -161,7 +165,7 @@ class LinkAccountForm extends FormBase
 
       $this->ajaxGenerateMessage($ajax_response);
     }
-    catch (\Adrenth\Raindrop\Exception\UserAlreadyMappedToApplication $e) {
+    catch (Exception\UserAlreadyMappedToApplication $e) {
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> was already mapped to this application.', ['@username' => $hydroId]), 'warning');
 
       $client->unregisterUser($hydroId);
@@ -169,7 +173,7 @@ class LinkAccountForm extends FormBase
 
       $this->ajaxGenerateMessage($ajax_response);
     }
-    catch (\Adrenth\Raindrop\Exception\UsernameDoesNotExist $e) {
+    catch (Exception\UsernameDoesNotExist $e) {
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> does not exist.', ['@username' => $hydroId]), 'error');
       $this->_unlockForm($ajax_response);
     }
@@ -184,7 +188,7 @@ class LinkAccountForm extends FormBase
    *
    * @param AjaxResponse $ajax_response
    */
-  protected function ajaxGenerateMessage(AjaxResponse &$ajax_response) {
+  public function ajaxGenerateMessage(AjaxResponse &$ajax_response) {
     $client = $this->getClient();
     $this->tempStore->set('hydro_raindrop_message', $client->generateMessage());
 
@@ -209,14 +213,14 @@ class LinkAccountForm extends FormBase
    *
    * @return bool
    */
-  protected function verifySignature(string $hydroId, int $message) {
+  public function verifySignature(string $hydroId, int $message): bool {
     $client = $this->getClient();
     try {
       $client->verifySignature($hydroId, $message);
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been verified.', ['@username' => $hydroId]));
       return TRUE;
     }
-    catch (\Adrenth\Raindrop\Exception\VerifySignatureFailed $e) {
+    catch (Exception\VerifySignatureFailed $e) {
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> could not be verified.', ['@username' => $hydroId]), 'error');
     }
     return FALSE;
