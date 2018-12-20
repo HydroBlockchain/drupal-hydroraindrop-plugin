@@ -137,9 +137,6 @@ class AuthForm extends FormBase {
 
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been successfully registered.', ['@username' => $hydroId]));
 
-      // At this point we can attach the Hydro ID to the user.
-      $this->attachHydroId($hydroId);
-
       $this->ajaxGenerateMessage($ajax_response);
     }
     catch (Exception\UserAlreadyMappedToApplication $e) {
@@ -147,9 +144,6 @@ class AuthForm extends FormBase {
 
       $client->unregisterUser($hydroId);
       $client->registerUser($hydroId);
-
-      // At this point we can attach the Hydro ID to the user.
-      $this->attachHydroId($hydroId);
 
       $this->ajaxGenerateMessage($ajax_response);
     }
@@ -233,7 +227,12 @@ class AuthForm extends FormBase {
     $client = $this->getClient();
     try {
       $client->verifySignature($hydroId, $message);
+
+      // At this point we can attach the Hydro ID to the user.
+      $this->attachHydroId($hydroId);
+
       drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been verified.', ['@username' => $hydroId]));
+
       return TRUE;
     }
     catch (Exception\VerifySignatureFailed $e) {
