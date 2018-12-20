@@ -56,39 +56,48 @@ class AuthForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
 
-    $form['hydro_raindrop_id'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Hydro Username'),
-      '#description' => 'Enter your Hydro username, visible in the Hydro mobile app.',
-      '#maxlength' => 7,
-      '#size' => 7,
-      '#weight' => '0',
-    ];
+    $user = User::load(\Drupal::currentUser()->id());
+    $hydro_raindrop_verified = $user->field_hydro_raindrop_status->value;
 
+    if (!$hydro_raindrop_verified) {
+      $form['hydro_raindrop_id'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('HydroID'),
+        '#description' => 'Enter your HydroID, visible in the Hydro mobile app.',
+        '#maxlength' => 7,
+        '#size' => 7,
+        '#weight' => '0',
+      ];
+    }
+
+    $message = !$this->tempStore->get('hydro_raindrop_message') ? '6 digit message: ' . $this->ajaxGenerateMessage() : '6 digit message: ' . $this->tempStore->get('hydro_raindrop_message');
     $form['hydro_raindrop_message'] = [
       '#prefix' => '<div id="hydro-raindrop-message">',
+      '#markup' => $message,
       '#suffix' => '</div>',
     ];
 
-    $form['hydro_raindrop_ajax_register_user'] = [
-      '#type' => 'button',
-      '#value' => $this->t('Register'),
-      '#ajax' => array(
-        'callback' => '::ajaxRegisterUser',
-        'event' => 'click',
-        'progress' => [
-          'type' => 'throbber',
-          'message' => $this->t('Registering...'),
-        ],
-      ),
-      '#weight' => '1',
-    ];
+    if (!$hydro_raindrop_verified) {
+      $form['hydro_raindrop_ajax_register_user'] = [
+        '#type' => 'button',
+        '#value' => $this->t('Register'),
+        '#ajax' => array(
+          'callback' => '::ajaxRegisterUser',
+          'event' => 'click',
+          'progress' => [
+            'type' => 'throbber',
+            'message' => $this->t('Registering...'),
+          ],
+        ),
+        '#weight' => '1',
+      ];
+    }
 
     $form['hydro_raindrop_submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Authenticate'),
       '#attributes' => [
-        'disabled' => 'disabled'
+        'disabled' => !$hydro_raindrop_verified
       ],
       '#weight' => '2',
     ];
@@ -100,13 +109,13 @@ class AuthForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $hydroId = $form_state->getValue('hydro_raindrop_id');
+    $user = User::load(\Drupal::currentUser()->id());
+    $hydroId = $form_state->getValue('hydro_raindrop_id') ?: $user->field_hydro_raindrop_id->value;
     $message = (int) $this->tempStore->get('hydro_raindrop_message');
-    
+
     // If the user passes verification...
     if ($this->verifySignature($hydroId, $message)) {
       // Indicate that Raindrop is linked and authenticated.
-      $user = User::load(\Drupal::currentUser()->id());
       $user->set('field_hydro_raindrop_status', TRUE);
       $user->save();
 
@@ -135,12 +144,12 @@ class AuthForm extends FormBase {
     try {
       $client->registerUser($hydroId);
 
-      drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been successfully registered.', ['@username' => $hydroId]));
+      drupal_set_message(t('HydroID <b><i>@hydroId</i></b> has been successfully registered.', ['@hydroId' => $hydroId]));
 
       $this->ajaxGenerateMessage($ajax_response);
     }
     catch (Exception\UserAlreadyMappedToApplication $e) {
-      drupal_set_message(t('Hydro Account <b><i>@username</i></b> was already mapped to this application.', ['@username' => $hydroId]), 'warning');
+      drupal_set_message(t('HydroID <b><i>@hydroId</i></b> was already mapped to this application.', ['@hydroId' => $hydroId]), 'warning');
 
       $client->unregisterUser($hydroId);
       $client->registerUser($hydroId);
@@ -148,7 +157,7 @@ class AuthForm extends FormBase {
       $this->ajaxGenerateMessage($ajax_response);
     }
     catch (Exception\UsernameDoesNotExist $e) {
-      drupal_set_message(t('Hydro Account <b><i>@username</i></b> does not exist.', ['@username' => $hydroId]), 'error');
+      drupal_set_message(t('HydroID <b><i>@hydroId</i></b> does not exist.', ['@hydroId' => $hydroId]), 'error');
       $this->_unlockForm($ajax_response);
     }
 
@@ -198,21 +207,25 @@ class AuthForm extends FormBase {
    *
    * @param AjaxResponse $ajax_response
    */
-  protected function ajaxGenerateMessage(AjaxResponse &$ajax_response) {
+  protected function ajaxGenerateMessage($ajax_response = NULL) {
     $client = $this->getClient();
     $this->tempStore->set('hydro_raindrop_message', $client->generateMessage());
 
-    // Display hydro_raindrop_message.
-    $ajax_response->addCommand(
-      new HtmlCommand(
-        '#hydro-raindrop-message',
-        '6 digit message: ' . $this->tempStore->get('hydro_raindrop_message')
-      )
-    );
-    
-    $ajax_response->addCommand(
-      new InvokeCommand('#edit-hydro-raindrop-submit', 'attr', ['disabled', FALSE])
-    );
+    if (!$ajax_response) {
+      return $this->tempStore->get('hydro_raindrop_message');
+    } else {
+      // Display hydro_raindrop_message.
+      $ajax_response->addCommand(
+        new HtmlCommand(
+          '#hydro-raindrop-message',
+          '6 digit message: ' . $this->tempStore->get('hydro_raindrop_message')
+        )
+      );
+
+      $ajax_response->addCommand(
+        new InvokeCommand('#edit-hydro-raindrop-submit', 'attr', ['disabled', FALSE])
+      );
+    }
   }
 
   /**
@@ -231,12 +244,12 @@ class AuthForm extends FormBase {
       // At this point we can attach the Hydro ID to the user.
       $this->attachHydroId($hydroId);
 
-      drupal_set_message(t('Hydro Account <b><i>@username</i></b> has been verified.', ['@username' => $hydroId]));
+      drupal_set_message(t('HydroID <b><i>@hydroId</i></b> has been verified.', ['@hydroId' => $hydroId]));
 
       return TRUE;
     }
     catch (Exception\VerifySignatureFailed $e) {
-      drupal_set_message(t('Hydro Account <b><i>@username</i></b> could not be verified.', ['@username' => $hydroId]), 'error');
+      drupal_set_message(t('HydroID <b><i>@hydroId</i></b> could not be verified.', ['@hydroId' => $hydroId]), 'error');
     }
     return FALSE;
   }
