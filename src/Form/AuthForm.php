@@ -221,12 +221,6 @@ class AuthForm extends FormBase {
   protected function ajaxGenerateMessage($ajax_response = NULL) {
     $client = $this->getClient();
 
-    // Swap out image
-    $imageSrc = \Drupal::moduleHandler()->getModule('hydro_raindrop')->getPath() . '/images/input-message.png';
-    $ajax_response->addCommand(
-      new InvokeCommand('#hydro-raindrop-image', 'attr', ['src', $imageSrc])
-    );
-    
     // Fix for weird bug where the message was generated twice before submission
     if (empty($this->tempStore->get('hydro_raindrop_message'))) {
       $this->tempStore->set('hydro_raindrop_message', $client->generateMessage());
@@ -235,6 +229,12 @@ class AuthForm extends FormBase {
     if (!$ajax_response) {
       return $this->tempStore->get('hydro_raindrop_message');
     } else {
+      // Swap out image
+      $imageSrc = \Drupal::moduleHandler()->getModule('hydro_raindrop')->getPath() . '/images/input-message.png';
+      $ajax_response->addCommand(
+        new InvokeCommand('#hydro-raindrop-image', 'attr', ['src', $imageSrc])
+      );
+
       // Display hydro_raindrop_message.
       $ajax_response->addCommand(
         new HtmlCommand(
