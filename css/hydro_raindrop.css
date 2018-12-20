@@ -1,0 +1,18 @@
+.hydro-raindrop-auth-form {
+  text-align: center;
+  width: 420px;
+  margin: 0 auto;
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+}
+
+.hydro-raindrop-auth-form > * {
+  margin: 5px 0 !important;
+}
+
+#hydro-raindrop-message.isShowing {
+  border: 1px solid #000;
+  border-radius: 5px;
+  width: 80px;
+}

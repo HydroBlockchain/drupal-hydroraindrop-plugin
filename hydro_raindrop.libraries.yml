@@ -1,0 +1,4 @@
+hydro_raindrop:
+  css:
+    theme:
+      css/hydro_raindrop.css: {}

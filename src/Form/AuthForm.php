@@ -59,6 +59,14 @@ class AuthForm extends FormBase {
     $user = User::load(\Drupal::currentUser()->id());
     $hydro_raindrop_verified = $user->field_hydro_raindrop_status->value;
 
+    $form['#attached']['library'][] = 'hydro_raindrop/hydro_raindrop';
+
+    $module_path = \Drupal::moduleHandler()->getModule('hydro_raindrop')->getPath();
+    $image_src =  $module_path . '/images/input-hydro-id.png';
+    $form['hydro_raindrop_image'] = [
+      '#markup' => "<img id='hydro-raindrop-image' src='{$image_src}'>",
+    ];
+
     if (!$hydro_raindrop_verified) {
       $form['hydro_raindrop_id'] = [
         '#type' => 'textfield',
@@ -69,8 +77,8 @@ class AuthForm extends FormBase {
         '#weight' => '0',
       ];
     }
-    
-    $message = $hydro_raindrop_verified ? '6 digit message: ' . $this->ajaxGenerateMessage() : '';
+
+    $message = $hydro_raindrop_verified ? $this->ajaxGenerateMessage() : '';
     $form['hydro_raindrop_message'] = [
       '#prefix' => '<div id="hydro-raindrop-message">',
       '#markup' => $message,
@@ -112,6 +120,8 @@ class AuthForm extends FormBase {
     $user = User::load(\Drupal::currentUser()->id());
     $hydroId = $form_state->getValue('hydro_raindrop_id') ?: $user->field_hydro_raindrop_id->value;
     $message = (int) $this->tempStore->get('hydro_raindrop_message');
+
+    // Reset the tempStore to ensure fresh messages
     $this->tempStore->set('hydro_raindrop_message', NULL);
 
     // If the user passes verification...
@@ -210,6 +220,12 @@ class AuthForm extends FormBase {
    */
   protected function ajaxGenerateMessage($ajax_response = NULL) {
     $client = $this->getClient();
+
+    // Swap out image
+    $imageSrc = \Drupal::moduleHandler()->getModule('hydro_raindrop')->getPath() . '/images/input-message.png';
+    $ajax_response->addCommand(
+      new InvokeCommand('#hydro-raindrop-image', 'attr', ['src', $imageSrc])
+    );
     
     // Fix for weird bug where the message was generated twice before submission
     if (empty($this->tempStore->get('hydro_raindrop_message'))) {
@@ -223,7 +239,7 @@ class AuthForm extends FormBase {
       $ajax_response->addCommand(
         new HtmlCommand(
           '#hydro-raindrop-message',
-          '6 digit message: ' . $this->tempStore->get('hydro_raindrop_message')
+          (string) $this->tempStore->get('hydro_raindrop_message')
         )
       );
 
@@ -231,6 +247,14 @@ class AuthForm extends FormBase {
         new InvokeCommand('#edit-hydro-raindrop-submit', 'attr', ['disabled', FALSE])
       );
     }
+
+    $ajax_response->addCommand(
+      new InvokeCommand('#hydro-raindrop-message', 'attr', ['class', 'isShowing'])
+    );
+
+    $ajax_response->addCommand(
+      new HtmlCommand('#edit-hydro-raindrop-id--description', 'Now Enter Security Code into the Hydro App')
+    );
   }
 
   /**
