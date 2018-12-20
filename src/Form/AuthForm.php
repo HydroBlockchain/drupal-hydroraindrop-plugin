@@ -69,8 +69,8 @@ class AuthForm extends FormBase {
         '#weight' => '0',
       ];
     }
-
-    $message = !$this->tempStore->get('hydro_raindrop_message') ? '6 digit message: ' . $this->ajaxGenerateMessage() : '6 digit message: ' . $this->tempStore->get('hydro_raindrop_message');
+    
+    $message = $hydro_raindrop_verified ? '6 digit message: ' . $this->ajaxGenerateMessage() : '';
     $form['hydro_raindrop_message'] = [
       '#prefix' => '<div id="hydro-raindrop-message">',
       '#markup' => $message,
@@ -112,6 +112,7 @@ class AuthForm extends FormBase {
     $user = User::load(\Drupal::currentUser()->id());
     $hydroId = $form_state->getValue('hydro_raindrop_id') ?: $user->field_hydro_raindrop_id->value;
     $message = (int) $this->tempStore->get('hydro_raindrop_message');
+    $this->tempStore->set('hydro_raindrop_message', NULL);
 
     // If the user passes verification...
     if ($this->verifySignature($hydroId, $message)) {
@@ -209,7 +210,11 @@ class AuthForm extends FormBase {
    */
   protected function ajaxGenerateMessage($ajax_response = NULL) {
     $client = $this->getClient();
-    $this->tempStore->set('hydro_raindrop_message', $client->generateMessage());
+    
+    // Fix for weird bug where the message was generated twice before submission
+    if (empty($this->tempStore->get('hydro_raindrop_message'))) {
+      $this->tempStore->set('hydro_raindrop_message', $client->generateMessage());
+    }
 
     if (!$ajax_response) {
       return $this->tempStore->get('hydro_raindrop_message');
