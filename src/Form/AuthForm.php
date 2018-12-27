@@ -71,7 +71,7 @@ class AuthForm extends FormBase {
       $form['hydro_raindrop_id'] = [
         '#type' => 'textfield',
         '#title' => $this->t('HydroID'),
-        '#description' => 'Enter your HydroID, visible in the Hydro mobile app.',
+        '#description' => 'Enter your HydroID, visible in the Hydro Mobile App',
         '#maxlength' => 7,
         '#size' => 7,
         '#weight' => '0',
@@ -160,7 +160,7 @@ class AuthForm extends FormBase {
       $this->ajaxGenerateMessage($ajax_response);
     }
     catch (Exception\UserAlreadyMappedToApplication $e) {
-      drupal_set_message(t('HydroID <b><i>@hydroId</i></b> was already mapped to this application.', ['@hydroId' => $hydroId]), 'warning');
+      // drupal_set_message(t('HydroID <b><i>@hydroId</i></b> was already mapped to this application.', ['@hydroId' => $hydroId]), 'warning');
 
       $client->unregisterUser($hydroId);
       $client->registerUser($hydroId);
@@ -171,6 +171,10 @@ class AuthForm extends FormBase {
       drupal_set_message(t('HydroID <b><i>@hydroId</i></b> does not exist.', ['@hydroId' => $hydroId]), 'error');
       $this->_unlockForm($ajax_response);
     }
+    catch (Exception\RegisterUserFailed $e) {
+      drupal_set_message(t('@message', ['@message' => $e->getMessage()]), 'error');
+      $this->_unlockForm($ajax_response);
+    }
 
     $ajax_response->addCommand(new HtmlCommand('.region-highlighted', ['#type' => 'status_messages']));
 
@@ -178,18 +182,26 @@ class AuthForm extends FormBase {
   }
 
   /**
-   * Uses the Raindrop developer's API credentials to return a client object.
-   *
-   * @param Environment $environment
+   * Uses the Raindrop API credentials to return a client object.
    *
    * @return Client
    */
-  protected function getClient(Environment $environment = NULL): Client {
+  protected function getClient(): Client {
     $config = $this->config('hydro_raindrop.settings');
     $clientId = $config->get('client_id');
     $clientSecret = $config->get('client_secret');
-    $environment_class = $config->get('environment');
-    $environment = new $environment_class();
+    $environment = $config->get('environment');
+
+    // Instantiate the appropriate Environment class
+    switch($environment) {
+      case 'Production' :
+        $environment = new \Adrenth\Raindrop\Environment\ProductionEnvironment();
+        break;
+      default :
+        $environment = new \Adrenth\Raindrop\Environment\SandboxEnvironment();
+        break;
+    }
+
     $tokenStorage = new PrivateTempStoreStorage($this->tempStore);
     $applicationId = $config->get('application_id');
 
@@ -253,7 +265,7 @@ class AuthForm extends FormBase {
     );
 
     $ajax_response->addCommand(
-      new HtmlCommand('#edit-hydro-raindrop-id--description', 'Now Enter Security Code into the Hydro App')
+      new HtmlCommand('#edit-hydro-raindrop-id--description', 'Now Enter this Security Code into the Hydro Mobile App')
     );
   }
 
