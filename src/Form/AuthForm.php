@@ -290,7 +290,7 @@ class AuthForm extends FormBase {
       return TRUE;
     }
     catch (Exception\VerifySignatureFailed $e) {
-      drupal_set_message(t('HydroID <b><i>@hydroId</i></b> could not be verified.', ['@hydroId' => $hydroId]), 'error');
+      drupal_set_message(t('Authentication failed, please re-enter 6 digit MFA code from the Hydro App.'), 'error');
     }
     return FALSE;
   }
