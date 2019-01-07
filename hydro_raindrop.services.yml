@@ -1,0 +1,6 @@
+services:
+  hydro_raindrop.event_subscriber:
+    class: Drupal\hydro_raindrop\EventSubscriber\RequireMFASubscriber
+    arguments: ['@request_stack', '@current_user']
+    tags:
+      - { name: event_subscriber }
